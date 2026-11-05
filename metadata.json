@@ -1,0 +1,8 @@
+{
+  "name": "CertPulse - Real Estate SSL Monitor",
+  "description": "Production SSL certificate monitoring dashboard for real estate campaigns with Google Sheets sync, real-time TLS validation, and automated IST schedules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
