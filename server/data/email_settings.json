@@ -1,0 +1,11 @@
+{
+  "recipientEmail": "ashwini.poojary@homesfy.in",
+  "alertThresholdDays": 4,
+  "senderEmail": "certpulse-alerts@sslmonitor.app",
+  "smtpHost": "",
+  "smtpPort": 587,
+  "smtpUser": "",
+  "smtpPass": "",
+  "smtpSecure": false,
+  "enabled": true
+}
