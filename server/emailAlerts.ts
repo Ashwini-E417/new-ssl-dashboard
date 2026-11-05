@@ -20,6 +20,31 @@ const DEFAULT_SETTINGS: EmailSettings = {
   enabled: true,
 };
 
+// In serverless mode settings/logs live in memory and are hydrated/flushed by server/persistence.ts.
+// Only user-saved overrides are stored, so env-provided SMTP credentials are never written to the database.
+let externalEmailState: { settings: Partial<EmailSettings>; logs: EmailAlertLog[] } | null = null;
+
+export function setEmailState(state: { settings: Partial<EmailSettings>; logs: EmailAlertLog[] }) {
+  externalEmailState = { settings: { ...(state.settings || {}) }, logs: state.logs || [] };
+}
+
+export function getEmailState() {
+  return externalEmailState;
+}
+
+/** Reads the bundled email settings/logs (used to seed the hosted database on first run). */
+export function readBundledEmailState(): { settings: Partial<EmailSettings>; logs: EmailAlertLog[] } {
+  let settings: Partial<EmailSettings> = {};
+  let logs: EmailAlertLog[] = [];
+  try {
+    if (fs.existsSync(SETTINGS_PATH)) settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+  } catch {}
+  try {
+    if (fs.existsSync(LOGS_PATH)) logs = JSON.parse(fs.readFileSync(LOGS_PATH, 'utf-8')) || [];
+  } catch {}
+  return { settings, logs };
+}
+
 function ensureEmailFiles() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -33,6 +58,13 @@ function ensureEmailFiles() {
 }
 
 export function getEmailSettings(): EmailSettings {
+  if (externalEmailState) {
+    // Empty saved values fall back to defaults (incl. SMTP_* environment variables)
+    const overrides = Object.fromEntries(
+      Object.entries(externalEmailState.settings).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    return { ...DEFAULT_SETTINGS, ...overrides } as EmailSettings;
+  }
   ensureEmailFiles();
   try {
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
@@ -43,6 +75,10 @@ export function getEmailSettings(): EmailSettings {
 }
 
 export function updateEmailSettings(updates: Partial<EmailSettings>): EmailSettings {
+  if (externalEmailState) {
+    externalEmailState.settings = { ...externalEmailState.settings, ...updates };
+    return getEmailSettings();
+  }
   ensureEmailFiles();
   const current = getEmailSettings();
   const updated = { ...current, ...updates };
@@ -51,6 +87,7 @@ export function updateEmailSettings(updates: Partial<EmailSettings>): EmailSetti
 }
 
 export function getEmailAlertLogs(): EmailAlertLog[] {
+  if (externalEmailState) return externalEmailState.logs;
   ensureEmailFiles();
   try {
     const raw = fs.readFileSync(LOGS_PATH, 'utf-8');
@@ -61,6 +98,10 @@ export function getEmailAlertLogs(): EmailAlertLog[] {
 }
 
 export function saveEmailAlertLog(log: EmailAlertLog) {
+  if (externalEmailState) {
+    externalEmailState.logs = [log, ...externalEmailState.logs].slice(0, 50);
+    return;
+  }
   ensureEmailFiles();
   const logs = getEmailAlertLogs();
   const updated = [log, ...logs].slice(0, 50); // keep recent 50 logs
