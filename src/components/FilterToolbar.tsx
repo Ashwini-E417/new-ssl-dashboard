@@ -17,7 +17,6 @@ interface FilterToolbarProps {
   filters: FilterOptions;
   onFilterChange: (updates: Partial<FilterOptions>) => void;
   onResetFilters: () => void;
-  regions: string[];
   totalFilteredCount: number;
   totalAllCount: number;
   onExportCsv: () => void;
@@ -30,7 +29,6 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
   filters,
   onFilterChange,
   onResetFilters,
-  regions,
   totalFilteredCount,
   totalAllCount,
   onExportCsv,
@@ -52,7 +50,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
       {/* Top row: Quick Tabs & Action buttons */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
         {/* Quick Filter Tabs */}
-        <div className="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto py-0.5 no-scrollbar">
+        <div className="flex flex-wrap items-center gap-1.5 py-0.5 min-w-0">
           <button
             id="tab-filter-all"
             onClick={() =>
@@ -151,7 +149,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
             <span>🚨 Expiring ≤ 4 Days</span>
             {expiringIn4DaysCount > 0 && (
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                   filters.daysRemainingFilter === '4'
                     ? 'bg-white text-rose-700'
                     : 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
@@ -180,7 +178,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
         </div>
 
         {/* Export / Import tools */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           {onExportExcel && (
             <button
               id="btn-export-excel"
@@ -216,9 +214,9 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
       </div>
 
       {/* Main Filter Bar Controls */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
         {/* Search Input */}
-        <div className="relative col-span-1 sm:col-span-2">
+        <div className="relative col-span-1 sm:col-span-3 md:col-span-2">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             id="input-search-projects"
@@ -291,27 +289,10 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
             <option value="Pending">RERA: Pending</option>
           </select>
         </div>
-
-        {/* Region Dropdown */}
-        <div>
-          <select
-            id="select-filter-region"
-            value={filters.region}
-            onChange={(e) => onFilterChange({ region: e.target.value })}
-            className="w-full py-2 px-2.5 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="ALL">Region: All</option>
-            {regions.map((reg) => (
-              <option key={reg} value={reg}>
-                Region: {reg}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Filter status row with count & reset button */}
-      <div className="flex items-center justify-between pt-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center space-x-2">
           <span>
             Showing <strong className="text-slate-800 dark:text-slate-200 font-semibold">{totalFilteredCount}</strong> of{' '}

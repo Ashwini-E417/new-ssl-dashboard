@@ -374,7 +374,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+              <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold whitespace-nowrap border-b border-slate-200 dark:border-slate-800">
                 {/* Checkbox select all */}
                 <th className="p-3 w-10 text-center">
                   <input
@@ -479,7 +479,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
                 </th>
 
                 {/* Row Actions */}
-                <th className="p-3 text-right sticky right-0 bg-slate-50 dark:bg-slate-800/90 min-w-[120px]">
+                <th className="p-3 text-right sticky right-0 z-10 bg-slate-50 dark:bg-slate-800 min-w-[120px] shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.25)]">
                   <span>Actions</span>
                 </th>
               </tr>
@@ -625,7 +625,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
 
                       {/* Region */}
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                        <span className="inline-block whitespace-nowrap px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                           {project.region || '—'}
                         </span>
                       </td>
@@ -717,7 +717,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
                       </td>
 
                       {/* Row Action Buttons */}
-                      <td className="p-3 text-right sticky right-0 bg-white dark:bg-slate-900 shadow-sm">
+                      <td className="p-3 text-right sticky right-0 z-10 bg-white dark:bg-slate-900 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.25)]">
                         <div className="flex items-center justify-end space-x-1">
                           {/* SSL Live Check Button */}
                           <button

@@ -31,12 +31,12 @@ export const AttentionBanner: React.FC<AttentionBannerProps> = ({
       className="mb-6 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-gradient-to-r from-rose-50 via-rose-100/60 to-amber-50 dark:from-rose-950/40 dark:via-rose-900/20 dark:to-amber-950/20 p-4 shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start space-x-3">
-          <div className="p-2 rounded-lg bg-rose-500 text-white shadow-sm mt-0.5">
+        <div className="flex items-start space-x-3 min-w-0">
+          <div className="shrink-0 p-2 rounded-lg bg-rose-500 text-white shadow-sm mt-0.5">
             <ShieldAlert className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-bold text-rose-950 dark:text-rose-200">
                 Action Required: {stats.attentionRequiredCount} Domain(s) Need Attention
               </h3>
@@ -104,7 +104,7 @@ export const AttentionBanner: React.FC<AttentionBannerProps> = ({
 
         <button
           onClick={() => setDismissed(true)}
-          className="text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-200/50 dark:hover:bg-rose-900/40 transition-colors"
+          className="shrink-0 text-rose-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-200/50 dark:hover:bg-rose-900/40 transition-colors"
           title="Dismiss banner"
         >
           <X className="w-4 h-4" />
