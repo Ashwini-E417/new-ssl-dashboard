@@ -29,22 +29,22 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       : 0;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
       {/* Total Projects */}
       <div
         id="stat-total-projects"
         onClick={() => onFilterSelect('all', 'ALL')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'ALL'
             ? 'ring-2 ring-slate-800 dark:ring-slate-400 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-tight min-w-0">
             Total Monitored
           </span>
-          <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+          <div className="shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
             <Globe className="w-4 h-4" />
           </div>
         </div>
@@ -63,17 +63,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div
         id="stat-active-campaigns"
         onClick={() => onFilterSelect('campaignStatus', 'Active')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'Active'
             ? 'ring-2 ring-emerald-500 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider leading-tight min-w-0">
             Active Campaigns
           </span>
-          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+          <div className="shrink-0 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
             <Radio className="w-4 h-4 animate-pulse" />
           </div>
         </div>
@@ -94,17 +94,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div
         id="stat-ssl-valid"
         onClick={() => onFilterSelect('sslStatus', 'valid')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'valid'
             ? 'ring-2 ring-teal-500 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider leading-tight min-w-0">
             SSL Healthy
           </span>
-          <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400">
+          <div className="shrink-0 p-2 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400">
             <CheckCircle className="w-4 h-4" />
           </div>
         </div>
@@ -125,17 +125,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div
         id="stat-attention-required"
         onClick={() => onFilterSelect('sslStatus', 'attention')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'attention'
             ? 'ring-2 ring-rose-500 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider leading-tight min-w-0">
             Attention Required
           </span>
-          <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+          <div className="shrink-0 p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
             <AlertOctagon className="w-4 h-4" />
           </div>
         </div>
@@ -154,17 +154,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div
         id="stat-expiring-soon"
         onClick={() => onFilterSelect('sslStatus', 'expiring_soon')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'expiring_soon'
             ? 'ring-2 ring-amber-500 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider leading-tight min-w-0">
             Expiring &lt; 15 Days
           </span>
-          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+          <div className="shrink-0 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
             <Clock className="w-4 h-4" />
           </div>
         </div>
@@ -196,17 +196,17 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       <div
         id="stat-rera-issues"
         onClick={() => onFilterSelect('reraIssues', 'active_broken')}
-        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+        className={`bg-white dark:bg-slate-900 border rounded-xl p-4 min-w-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
           activeFilter === 'active_broken'
             ? 'ring-2 ring-purple-500 border-transparent'
             : 'border-slate-200 dark:border-slate-800'
         }`}
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider leading-tight min-w-0">
             QR Not Working
           </span>
-          <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+          <div className="shrink-0 p-2 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
             <QrCode className="w-4 h-4" />
           </div>
         </div>

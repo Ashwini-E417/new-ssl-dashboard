@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/*
+ * Tailwind v4 defaults `dark:` to the OS `prefers-color-scheme` setting.
+ * This app toggles dark mode by adding/removing `.dark` on <html>
+ * (see Header.tsx), so bind the variant to that class instead.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Keep native controls (checkboxes, selects, scrollbars) in sync with the active theme. */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--color-emerald-600);
+}

@@ -52,13 +52,13 @@ export const RegionalSummary: React.FC<RegionalSummaryProps> = ({
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 mb-4 shadow-sm">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row items-start gap-4 xl:gap-6">
         {/* Left: Campaign Status Summary Pills */}
-        <div className="w-full lg:w-auto">
+        <div className="w-full xl:w-auto xl:shrink-0">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
             Campaign Distribution
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 xl:flex-nowrap">
             {(['Active', 'Paused', 'Suspended', 'Not Started', 'Expired'] as CampaignStatus[]).map((status) => {
               const count = campaignMap[status] || 0;
               const isSelected = activeCampaignFilter === status;
@@ -67,7 +67,7 @@ export const RegionalSummary: React.FC<RegionalSummaryProps> = ({
                 <button
                   key={status}
                   onClick={() => onSelectCampaign(isSelected ? 'ALL' : status)}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                     isSelected
                       ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
                       : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60'
@@ -95,47 +95,47 @@ export const RegionalSummary: React.FC<RegionalSummaryProps> = ({
         </div>
 
         {/* Vertical divider */}
-        <div className="hidden lg:block w-px h-10 bg-slate-200 dark:bg-slate-800" />
+        <div className="hidden xl:block xl:ml-auto self-stretch w-px bg-slate-200 dark:bg-slate-800" />
 
-        {/* Right: Regions Summary Pills */}
-        <div className="w-full flex-1">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Regional SSL Coverage (Click to Filter)
-            </span>
+        {/* Right: Region filter dropdown */}
+        <div className="w-full xl:w-80 xl:shrink-0">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <label
+              htmlFor="region-summary-select"
+              className="text-[11px] font-bold text-slate-400 uppercase tracking-wider"
+            >
+              Regional SSL Coverage
+            </label>
             {activeRegionFilter !== 'ALL' && (
               <button
+                type="button"
                 onClick={() => onSelectRegion('ALL')}
                 className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
               >
-                Clear Region Filter
+                Clear
               </button>
             )}
           </div>
 
-          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {sortedRegions.map(([regionName, data]) => {
-              const isSelected = activeRegionFilter === regionName;
-
-              return (
-                <button
-                  key={regionName}
-                  onClick={() => onSelectRegion(isSelected ? 'ALL' : regionName)}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60'
-                  }`}
-                >
-                  <MapPin className="w-3 h-3 text-slate-400" />
-                  <span>{regionName}</span>
-                  <span className="font-mono text-[10px] opacity-80">({data.total})</span>
-                  {data.attention > 0 && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title={`${data.attention} attention required`} />
-                  )}
-                </button>
-              );
-            })}
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <select
+              id="region-summary-select"
+              value={activeRegionFilter}
+              onChange={(e) => onSelectRegion(e.target.value)}
+              className={`w-full pl-8 pr-3 py-2 text-xs font-medium rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
+                activeRegionFilter !== 'ALL'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
+              }`}
+            >
+              <option value="ALL">All regions ({projects.length})</option>
+              {sortedRegions.map(([regionName, data]) => (
+                <option key={regionName} value={regionName}>
+                  {`${regionName} (${data.total})${data.attention > 0 ? ` · ${data.attention} need attention` : ''}`}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

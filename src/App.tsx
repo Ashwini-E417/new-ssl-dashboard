@@ -8,10 +8,11 @@ import {
   GoogleSheetConfig,
   ScheduledRunLog,
 } from './types';
-import { Header } from './components/Header';
+import { Header, DashboardPage } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { AttentionBanner } from './components/AttentionBanner';
 import { RegionalSummary } from './components/RegionalSummary';
+import { RegionCampaignGrid } from './components/RegionCampaignGrid';
 import { FilterToolbar } from './components/FilterToolbar';
 import { ProjectTable } from './components/ProjectTable';
 import { AddProjectModal } from './components/AddProjectModal';
@@ -21,7 +22,7 @@ import { GoogleSheetSyncModal } from './components/GoogleSheetSyncModal';
 import { SchedulerModal } from './components/SchedulerModal';
 import { EmailAlertsModal } from './components/EmailAlertsModal';
 import { NotificationDrawer } from './components/NotificationDrawer';
-import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 
 const DEFAULT_FILTERS: FilterOptions = {
   search: '',
@@ -71,6 +72,34 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterOptions>(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Two-page dashboard: Overview (summary) and Projects (filters + table).
+  // Kept in the URL hash so refresh and browser back/forward work.
+  const readPageFromHash = (): DashboardPage =>
+    typeof window !== 'undefined' && window.location.hash === '#projects' ? 'projects' : 'overview';
+  const [activePage, setActivePage] = useState<DashboardPage>(readPageFromHash);
+
+  useEffect(() => {
+    const onHashChange = () => setActivePage(readPageFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const navigateTo = useCallback((page: DashboardPage) => {
+    setActivePage(page);
+    if (window.location.hash !== `#${page}`) {
+      window.history.pushState(null, '', `#${page}`);
+    }
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  // Wraps a filter action so it also opens the Projects page where the result is visible.
+  const andShowProjects =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A) => {
+      fn(...args);
+      navigateTo('projects');
+    };
   const [sortField, setSortField] = useState<string>('campaignStatus');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -796,37 +825,42 @@ export default function App() {
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
         onOpenSchedulerModal={() => setIsSchedulerModalOpen(true)}
         onOpenEmailModal={() => setIsEmailModalOpen(true)}
-        onFilterExpiring4Days={handleToggleFilterExpiring4Days}
+        onFilterExpiring4Days={andShowProjects(handleToggleFilterExpiring4Days)}
         isExpiring4DaysFiltered={filters.daysRemainingFilter === '4'}
         expiringIn4DaysCount={expiringIn4DaysCount}
         sheetConfig={sheetConfig}
         attentionCount={stats.attentionRequiredCount}
         projects={projects}
         onOpenNotificationDrawer={() => setIsNotificationDrawerOpen(true)}
+        activePage={activePage}
+        onNavigate={navigateTo}
+        totalProjects={projects.length}
       />
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activePage === 'overview' ? (
+          <>
         {/* Critical Attention Banner */}
         <AttentionBanner
           stats={stats}
-          onFilterAttention={() => {
+          onFilterAttention={andShowProjects(() => {
             setFilters((prev) => ({
               ...prev,
               sslStatus: prev.sslStatus === 'attention' ? 'ALL' : 'attention',
             }));
             setCurrentPage(1);
-          }}
+          })}
           isAttentionFiltered={filters.sslStatus === 'attention'}
           expiringIn4DaysCount={expiringIn4DaysCount}
-          onFilterExpiring4Days={handleToggleFilterExpiring4Days}
+          onFilterExpiring4Days={andShowProjects(handleToggleFilterExpiring4Days)}
           isExpiring4DaysFiltered={filters.daysRemainingFilter === '4'}
         />
 
         {/* Top 6 KPI Metric Cards */}
         <StatsOverview
           stats={stats}
-          onFilterSelect={handleFilterSelectFromCard}
+          onFilterSelect={andShowProjects(handleFilterSelectFromCard)}
           activeFilter={
             filters.sslStatus !== 'ALL'
               ? filters.sslStatus
@@ -837,19 +871,42 @@ export default function App() {
           expiringIn4DaysCount={expiringIn4DaysCount}
         />
 
+        {/* Campaign count per region */}
+        <RegionCampaignGrid
+          projects={projects}
+          onSelect={andShowProjects((region: string, campaignStatus: CampaignStatus | 'ALL') => {
+            setFilters({ ...DEFAULT_FILTERS, region, campaignStatus });
+            setCurrentPage(1);
+          })}
+        />
+
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => navigateTo('projects')}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-colors"
+              >
+                View all {projects.length} projects
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
         {/* Campaign & Regional Distribution Summary */}
         <RegionalSummary
           projects={projects}
           activeRegionFilter={filters.region}
           activeCampaignFilter={filters.campaignStatus}
-          onSelectRegion={(reg) => {
+          onSelectRegion={(reg: string) => {
             setFilters((prev) => ({
               ...prev,
               region: prev.region === reg ? 'ALL' : reg,
             }));
             setCurrentPage(1);
           }}
-          onSelectCampaign={(camp) => {
+          onSelectCampaign={(camp: CampaignStatus | 'ALL') => {
             setFilters((prev) => ({
               ...prev,
               campaignStatus: camp,
@@ -869,7 +926,6 @@ export default function App() {
             setFilters(DEFAULT_FILTERS);
             setCurrentPage(1);
           }}
-          regions={existingRegions}
           totalFilteredCount={filteredProjects.length}
           totalAllCount={projects.length}
           expiringIn4DaysCount={expiringIn4DaysCount}
@@ -915,6 +971,8 @@ export default function App() {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
           />
+        )}
+          </>
         )}
       </main>
 
@@ -979,7 +1037,7 @@ export default function App() {
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
         onRefreshData={fetchData}
-        onFilterInTable={handleToggleFilterExpiring4Days}
+        onFilterInTable={andShowProjects(handleToggleFilterExpiring4Days)}
       />
 
       {/* Real-time Alerts / Notification Drawer */}
