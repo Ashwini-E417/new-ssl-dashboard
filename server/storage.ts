@@ -15,7 +15,7 @@ import { INITIAL_SHEET_ROWS } from './initialData.js';
 const DATA_DIR = path.join(process.cwd(), 'server', 'data');
 const STORE_PATH = path.join(DATA_DIR, 'store.json');
 
-interface DatabaseSchema {
+export interface DatabaseSchema {
   projects: ProjectRecord[];
   scheduledLogs: ScheduledRunLog[];
   googleSheetConfig: GoogleSheetConfig;
@@ -23,6 +23,38 @@ interface DatabaseSchema {
 }
 
 let memoryDb: DatabaseSchema | null = null;
+
+// 'file': local dev, state is persisted to server/data/store.json on every write.
+// 'external': serverless (Netlify), state is hydrated/flushed by server/persistence.ts.
+let persistenceMode: 'file' | 'external' = 'file';
+
+export function useExternalPersistence() {
+  persistenceMode = 'external';
+}
+
+export function getDatabaseState(): DatabaseSchema | null {
+  return memoryDb;
+}
+
+export function setDatabaseState(state: DatabaseSchema) {
+  memoryDb = state;
+}
+
+/** Reads the bundled store.json (used to seed the hosted database on first run). */
+export function readBundledStore(): DatabaseSchema | null {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      return JSON.parse(fs.readFileSync(STORE_PATH, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to read bundled store.json:', e);
+  }
+  return null;
+}
+
+export function buildInitialSeed(): DatabaseSchema {
+  return generateInitialSeed();
+}
 
 function ensureDataDirectory() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -176,6 +208,11 @@ function generateInitialSeed(): DatabaseSchema {
 
 function loadDatabase(): DatabaseSchema {
   if (memoryDb) return memoryDb;
+  if (persistenceMode === 'external') {
+    // Should have been hydrated by the persistence layer; fall back to a seed.
+    memoryDb = readBundledStore() || generateInitialSeed();
+    return memoryDb;
+  }
   ensureDataDirectory();
 
   if (fs.existsSync(STORE_PATH)) {
@@ -197,6 +234,7 @@ function saveDatabase() {
   if (!memoryDb) return;
   ensureDataDirectory();
   memoryDb.lastUpdated = new Date().toISOString();
+  if (persistenceMode === 'external') return;
   try {
     fs.writeFileSync(STORE_PATH, JSON.stringify(memoryDb, null, 2), 'utf-8');
   } catch (e) {

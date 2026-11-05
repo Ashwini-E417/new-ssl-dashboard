@@ -61,6 +61,26 @@ let checkProgress = {
   currentDomain: '',
 };
 
+export type CheckProgress = typeof checkProgress;
+
+// Serverless: a check running in a separate (background) function invocation is
+// reported through this shared status, loaded from the database on each request.
+let externalCheckStatus: { active: boolean; progress: CheckProgress; startedAt: string | null } | null = null;
+
+export function setExternalCheckStatus(status: typeof externalCheckStatus) {
+  externalCheckStatus = status;
+}
+
+export function getCheckProgress(): CheckProgress {
+  return { ...checkProgress };
+}
+
+function isExternalCheckActive(): boolean {
+  if (!externalCheckStatus?.active || !externalCheckStatus.startedAt) return false;
+  // Background functions run for at most 15 minutes; treat older flags as stale.
+  return Date.now() - new Date(externalCheckStatus.startedAt).getTime() < 16 * 60 * 1000;
+}
+
 /**
  * Executes a full routine SSL check:
  * 1. Syncs the latest domain list from the sheet first.
@@ -69,7 +89,8 @@ let checkProgress = {
  * 4. Automatically emails ashwini.poojary@homesfy.in with the website link & SSL expiration date.
  */
 export async function runRoutineSSLCheck(
-  slotLabel: '10:30 AM IST' | '2:30 PM IST' | '6:00 PM IST' | 'Manual Batch' = 'Manual Batch'
+  slotLabel: '10:30 AM IST' | '2:30 PM IST' | '6:00 PM IST' | 'Manual Batch' = 'Manual Batch',
+  hooks: { afterSheetSync?: () => Promise<void> } = {}
 ): Promise<ScheduledRunLog> {
   if (isCurrentlyRunning) {
     throw new Error('An SSL routine check batch is already in progress');
@@ -97,6 +118,13 @@ export async function runRoutineSSLCheck(
     } catch (sheetErr: any) {
       console.warn(`[Routine SSL Check] Sheet sync error before check:`, sheetErr.message);
     }
+    if (hooks.afterSheetSync) {
+      try {
+        await hooks.afterSheetSync();
+      } catch (hookErr: any) {
+        console.warn(`[Routine SSL Check] Failed to persist sheet sync:`, hookErr.message);
+      }
+    }
 
     // -------------------------------------------------------------
     // Step 2: Filter sites (check ALL sites EXCEPT Suspended and Expired)
@@ -122,8 +150,8 @@ export async function runRoutineSSLCheck(
     let expiringCount = 0;
     let failedCount = 0;
 
-    // Concurrency controlled execution: 4 domains at a time
-    const batchSize = 4;
+    // Concurrency controlled execution: 8 domains at a time
+    const batchSize = 8;
     for (let i = 0; i < checkableProjects.length; i += batchSize) {
       const batch = checkableProjects.slice(i, i + batchSize);
       await Promise.all(
@@ -285,8 +313,8 @@ export function getSchedulerStatus() {
     nextSlotLabel,
     nextSlotRemainingSeconds: secondsRemaining,
     scheduledSlots: SCHEDULED_SLOTS.map((s) => s.label),
-    isCheckingNow: isCurrentlyRunning,
-    checkProgress,
+    isCheckingNow: isCurrentlyRunning || isExternalCheckActive(),
+    checkProgress: isCurrentlyRunning || !isExternalCheckActive() ? checkProgress : externalCheckStatus!.progress,
     totalProjectsCount: allProjects.length,
     checkableCount,
     expiringIn4DaysCount,
