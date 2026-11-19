@@ -76,7 +76,7 @@ export function generateExcelWorkbookBuffer(projects: ProjectRecord[]): Buffer {
 
 export function saveLatestExcelToDisk(projects: ProjectRecord[]): void {
   // Serverless filesystems are read-only; the workbook is generated on demand via /api/sheets/export-excel.
-  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) return;
+  if (process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) return;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });

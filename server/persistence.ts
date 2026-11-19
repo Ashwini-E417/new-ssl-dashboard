@@ -1,5 +1,5 @@
 /**
- * Netlify Database persistence for the serverless deployment.
+ * Postgres (Neon) persistence for the serverless deployment on Vercel.
  *
  * The app's Storage module works on an in-memory document. In serverless mode every
  * function invocation hydrates that document from Postgres before handling a request and
@@ -7,7 +7,7 @@
  * the data bundled in server/data/ so existing sites, logs and settings carry over.
  */
 import { asc, eq, inArray, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
+import { getDb } from '../db/index.js';
 import { appState, projects as projectsTable } from '../db/schema.js';
 import {
   useExternalPersistence,
@@ -44,14 +44,42 @@ let stateSnapshot = new Map<string, string>();
 useExternalPersistence();
 
 async function upsertState(key: string, value: unknown) {
-  await db
+  await getDb()
     .insert(appState)
     .values({ key, value })
     .onConflictDoUpdate({ target: appState.key, set: { value, updatedAt: sql`now()` } });
 }
 
+let schemaReady: Promise<void> | null = null;
+
+/** Creates the tables on first use, so no separate migration step is needed. */
+function ensureSchema(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await getDb().execute(sql`
+        CREATE TABLE IF NOT EXISTS "projects" (
+          "id" text PRIMARY KEY,
+          "position" integer DEFAULT 0 NOT NULL,
+          "data" jsonb NOT NULL,
+          "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+        )`);
+      await getDb().execute(sql`
+        CREATE TABLE IF NOT EXISTS "app_state" (
+          "key" text PRIMARY KEY,
+          "value" jsonb NOT NULL,
+          "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+        )`);
+    })().catch((err) => {
+      schemaReady = null;
+      throw err;
+    });
+  }
+  return schemaReady;
+}
+
 async function seedIfEmpty() {
-  const marker = await db.select({ key: appState.key }).from(appState).where(eq(appState.key, KEYS.initialized));
+  await ensureSchema();
+  const marker = await getDb().select({ key: appState.key }).from(appState).where(eq(appState.key, KEYS.initialized));
   if (marker.length > 0) return;
 
   const store: DatabaseSchema = readBundledStore() || buildInitialSeed();
@@ -59,26 +87,26 @@ async function seedIfEmpty() {
 
   const rows = store.projects.map((p, i) => ({ id: p.id, position: i, data: p }));
   for (let i = 0; i < rows.length; i += 100) {
-    await db.insert(projectsTable).values(rows.slice(i, i + 100)).onConflictDoNothing();
+    await getDb().insert(projectsTable).values(rows.slice(i, i + 100)).onConflictDoNothing();
   }
   await upsertState(KEYS.scheduledLogs, store.scheduledLogs || []);
   await upsertState(KEYS.googleSheetConfig, store.googleSheetConfig);
   await upsertState(KEYS.emailSettings, email.settings);
   await upsertState(KEYS.emailLogs, email.logs);
-  await db
+  await getDb()
     .insert(appState)
     .values({ key: KEYS.initialized, value: { at: new Date().toISOString() } })
     .onConflictDoNothing();
   console.log(`[Persistence] Seeded database with ${rows.length} projects.`);
 }
 
-/** Loads the full application state from Netlify Database into memory. */
+/** Loads the full application state from Postgres into memory. */
 export async function hydrate(): Promise<void> {
   await seedIfEmpty();
 
   const [projectRows, stateRows] = await Promise.all([
-    db.select().from(projectsTable).orderBy(asc(projectsTable.position)),
-    db.select().from(appState),
+    getDb().select().from(projectsTable).orderBy(asc(projectsTable.position)),
+    getDb().select().from(appState),
   ]);
 
   const state = new Map(stateRows.map((r) => [r.key, r.value as any]));
@@ -120,7 +148,7 @@ export async function flush(): Promise<void> {
 
   for (let i = 0; i < changedRows.length; i += 100) {
     writes.push(
-      db
+      getDb()
         .insert(projectsTable)
         .values(changedRows.slice(i, i + 100))
         .onConflictDoUpdate({
@@ -137,7 +165,7 @@ export async function flush(): Promise<void> {
   const currentIds = new Set(ids);
   const removed = orderSnapshot.filter((id) => !currentIds.has(id));
   if (removed.length > 0) {
-    writes.push(db.delete(projectsTable).where(inArray(projectsTable.id, removed)));
+    writes.push(getDb().delete(projectsTable).where(inArray(projectsTable.id, removed)));
   }
 
   const email = getEmailState();
@@ -164,16 +192,19 @@ export async function flush(): Promise<void> {
 
 /** Records whether a background SSL check is running (shared across function invocations). */
 export async function saveCheckStatus(status: CheckStatus): Promise<void> {
+  await ensureSchema();
   await upsertState(KEYS.checkStatus, status);
 }
 
 export async function readCheckStatus(): Promise<CheckStatus | null> {
-  const rows = await db.select().from(appState).where(eq(appState.key, KEYS.checkStatus));
+  await ensureSchema();
+  const rows = await getDb().select().from(appState).where(eq(appState.key, KEYS.checkStatus));
   return (rows[0]?.value as CheckStatus) || null;
 }
 
 /** Reads only the Google Sheet config without loading all projects. */
 export async function readGoogleSheetConfig(): Promise<{ sheetUrl?: string } | null> {
-  const rows = await db.select().from(appState).where(eq(appState.key, KEYS.googleSheetConfig));
+  await ensureSchema();
+  const rows = await getDb().select().from(appState).where(eq(appState.key, KEYS.googleSheetConfig));
   return (rows[0]?.value as any) || null;
 }

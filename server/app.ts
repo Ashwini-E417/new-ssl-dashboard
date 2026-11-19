@@ -35,7 +35,7 @@ export interface ApiAppOptions {
 // Batches larger than this are queued to the background worker in serverless mode
 const INLINE_BATCH_LIMIT = 12;
 
-/** Builds the Express app with all /api routes (shared by local dev server and Netlify Function). */
+/** Builds the Express app with all /api routes (shared by local dev server and Vercel Function). */
 export function createApiApp(options: ApiAppOptions = {}) {
   const app = express();
 

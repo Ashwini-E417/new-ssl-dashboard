@@ -25,7 +25,7 @@ export interface DatabaseSchema {
 let memoryDb: DatabaseSchema | null = null;
 
 // 'file': local dev, state is persisted to server/data/store.json on every write.
-// 'external': serverless (Netlify), state is hydrated/flushed by server/persistence.ts.
+// 'external': serverless (Vercel), state is hydrated/flushed by server/persistence.ts.
 let persistenceMode: 'file' | 'external' = 'file';
 
 export function useExternalPersistence() {
@@ -232,9 +232,10 @@ function loadDatabase(): DatabaseSchema {
 
 function saveDatabase() {
   if (!memoryDb) return;
-  ensureDataDirectory();
   memoryDb.lastUpdated = new Date().toISOString();
+  // Serverless filesystems are read-only; the persistence layer writes to Postgres instead.
   if (persistenceMode === 'external') return;
+  ensureDataDirectory();
   try {
     fs.writeFileSync(STORE_PATH, JSON.stringify(memoryDb, null, 2), 'utf-8');
   } catch (e) {

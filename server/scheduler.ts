@@ -75,10 +75,12 @@ export function getCheckProgress(): CheckProgress {
   return { ...checkProgress };
 }
 
+export const STALE_CHECK_MS = 6 * 60 * 1000;
+
 function isExternalCheckActive(): boolean {
   if (!externalCheckStatus?.active || !externalCheckStatus.startedAt) return false;
-  // Background functions run for at most 15 minutes; treat older flags as stale.
-  return Date.now() - new Date(externalCheckStatus.startedAt).getTime() < 16 * 60 * 1000;
+  // Background functions run for at most 5 minutes on Vercel; treat older flags as stale.
+  return Date.now() - new Date(externalCheckStatus.startedAt).getTime() < STALE_CHECK_MS;
 }
 
 /**
@@ -90,7 +92,7 @@ function isExternalCheckActive(): boolean {
  */
 export async function runRoutineSSLCheck(
   slotLabel: '10:30 AM IST' | '2:30 PM IST' | '6:00 PM IST' | 'Manual Batch' = 'Manual Batch',
-  hooks: { afterSheetSync?: () => Promise<void> } = {}
+  hooks: { afterSheetSync?: () => Promise<void>; concurrency?: number } = {}
 ): Promise<ScheduledRunLog> {
   if (isCurrentlyRunning) {
     throw new Error('An SSL routine check batch is already in progress');
@@ -150,8 +152,8 @@ export async function runRoutineSSLCheck(
     let expiringCount = 0;
     let failedCount = 0;
 
-    // Concurrency controlled execution: 8 domains at a time
-    const batchSize = 8;
+    // Concurrency controlled execution: 8 domains at a time by default
+    const batchSize = hooks.concurrency || 8;
     for (let i = 0; i < checkableProjects.length; i += batchSize) {
       const batch = checkableProjects.slice(i, i + batchSize);
       await Promise.all(

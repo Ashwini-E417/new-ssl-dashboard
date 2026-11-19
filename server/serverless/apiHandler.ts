@@ -1,8 +1,8 @@
-import type { Config } from '@netlify/functions';
 import serverless from 'serverless-http';
-import { hydrate, flush } from '../../server/persistence.js';
-import { createApiApp } from '../../server/app.js';
-import { queueBackgroundCheck } from '../../server/backgroundQueue.js';
+import { hydrate, flush } from '../persistence.js';
+import { createApiApp } from '../app.js';
+import { queueBackgroundCheck } from '../backgroundQueue.js';
+import { serialize } from './lock.js';
 
 let currentOrigin = '';
 const app = createApiApp({
@@ -10,9 +10,18 @@ const app = createApiApp({
 });
 const expressHandler = serverless(app);
 
-export default async (req: Request) => {
+/**
+ * Runs the Express API for one Web Request: loads state from Postgres, handles the
+ * request in memory, writes changes back, then responds.
+ */
+async function handle(req: Request): Promise<Response> {
   const url = new URL(req.url);
   currentOrigin = url.origin;
+
+  // vercel.json rewrites /api/<path> to /api?__path=<path>; restore the original route.
+  const rewrittenPath = url.searchParams.get('__path');
+  url.searchParams.delete('__path');
+  const pathname = rewrittenPath !== null ? `/api/${rewrittenPath.replace(/^\/+/, '')}` : url.pathname;
 
   await hydrate();
 
@@ -25,7 +34,7 @@ export default async (req: Request) => {
   const result: any = await expressHandler(
     {
       httpMethod: req.method,
-      path: url.pathname,
+      path: pathname,
       headers,
       queryStringParameters: Object.fromEntries(url.searchParams),
       body,
@@ -50,8 +59,14 @@ export default async (req: Request) => {
   }
   const payload = result.body ? Buffer.from(result.body, result.isBase64Encoded ? 'base64' : 'utf8') : null;
   return new Response(payload, { status: result.statusCode || 200, headers: responseHeaders });
-};
+}
 
-export const config: Config = {
-  path: '/api/*',
-};
+export async function handleApiRequest(req: Request): Promise<Response> {
+  try {
+    // State lives in module memory, so requests sharing an instance must not overlap.
+    return await serialize(() => handle(req));
+  } catch (err: any) {
+    console.error('[API] Request failed:', err);
+    return Response.json({ error: err?.message || 'Internal server error' }, { status: 500 });
+  }
+}
