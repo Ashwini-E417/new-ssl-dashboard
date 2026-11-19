@@ -1,21 +1,24 @@
-import type { Config } from '@netlify/functions';
-import { hydrate, flush, saveCheckStatus, readCheckStatus } from '../../server/persistence.js';
-import { Storage, getDatabaseState } from '../../server/storage.js';
-import { runRoutineSSLCheck, getCheckProgress } from '../../server/scheduler.js';
-import { checkSSLCertificate } from '../../server/sslChecker.js';
-import { getEmailAlertLogs, saveEmailAlertLog } from '../../server/emailAlerts.js';
-import type { BackgroundCheckPayload } from '../../server/backgroundQueue.js';
+import { hydrate, flush, saveCheckStatus, readCheckStatus } from '../persistence.js';
+import { Storage, getDatabaseState } from '../storage.js';
+import { runRoutineSSLCheck, getCheckProgress } from '../scheduler.js';
+import { checkSSLCertificate } from '../sslChecker.js';
+import { getEmailAlertLogs, saveEmailAlertLog } from '../emailAlerts.js';
+import type { BackgroundCheckPayload } from '../backgroundQueue.js';
 import type { ProjectRecord } from '../../src/types.js';
+import { serialize } from './lock.js';
 
 const IDLE = { active: false, step: 'idle' as const, total: 0, current: 0, currentDomain: '' };
+
+// Vercel functions are capped at 300s on Hobby, so scan more sites in parallel than the
+// local server does (366 sites at 20 at a time with an 8s timeout stays well under the cap).
+const CONCURRENCY = 20;
 
 async function runBatch(ids: string[], progress: { total: number; current: number; currentDomain: string }) {
   const targets = Storage.getAllProjects().filter((p) => ids.includes(p.id));
   progress.total = targets.length;
-  const batchSize = 8;
-  for (let i = 0; i < targets.length; i += batchSize) {
+  for (let i = 0; i < targets.length; i += CONCURRENCY) {
     await Promise.all(
-      targets.slice(i, i + batchSize).map(async (project) => {
+      targets.slice(i, i + CONCURRENCY).map(async (project) => {
         progress.current++;
         progress.currentDomain = project.url;
         try {
@@ -29,8 +32,7 @@ async function runBatch(ids: string[], progress: { total: number; current: numbe
   }
 }
 
-export default async (req: Request) => {
-  const payload = (await req.json().catch(() => ({ mode: 'routine' }))) as BackgroundCheckPayload;
+async function run(payload: BackgroundCheckPayload): Promise<void> {
   const startedAt = new Date().toISOString();
 
   await hydrate();
@@ -53,6 +55,7 @@ export default async (req: Request) => {
       await runBatch(payload.ids || [], batchProgress);
     } else {
       await runRoutineSSLCheck(payload.slot || 'Manual Batch', {
+        concurrency: CONCURRENCY,
         // Persist sheet changes (new/removed sites) before the long scan starts
         afterSheetSync: async () => {
           await flush();
@@ -89,8 +92,9 @@ export default async (req: Request) => {
       await saveCheckStatus({ active: false, startedAt: null, progress: IDLE });
     }
   }
-};
+}
 
-export const config: Config = {
-  background: true,
-};
+/** Runs a routine or batch SSL check against the database (one at a time per instance). */
+export function runBackgroundCheck(payload: BackgroundCheckPayload): Promise<void> {
+  return serialize(() => run(payload));
+}
